@@ -108,15 +108,27 @@ export default function VoiceChat() {
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript;
       sendToClaude(text);
+      setListening(false);
     };
 
     recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event);
       setListening(false);
     };
   }, []);
 
   const startListening = () => {
     if (!recognition) return alert('瀏覽器不支援語音辨識。');
+    if (listening) {
+      // If already listening, stop it
+      recognition.stop();
+      setListening(false);
+      return;
+    }
     setListening(true);
     recognition.start();
   };
@@ -243,7 +255,23 @@ export default function VoiceChat() {
     // You might want to add a visual feedback here
   };
 
-  const testMessage = '這是一個測試訊息，用來測試語音輸入和回應功能。';
+  const testMessages = [
+    '說個有趣，又不傷人的笑話',
+    '分享一個你今天學到的新知識',
+    '用一句話形容你現在的心情',
+    '推薦一本你最近讀的好書',
+    '說說你對人工智慧的看法',
+    '分享一個你最近遇到的有趣事情',
+    '用三個詞形容你的個性',
+    '說說你最近的一個小目標',
+    '分享一個你喜歡的電影或影集',
+    '用一句話鼓勵正在努力的人',
+  ];
+
+  const getRandomTestMessage = () => {
+    const randomIndex = Math.floor(Math.random() * testMessages.length);
+    return testMessages[randomIndex];
+  };
 
   return (
     <div
@@ -363,14 +391,10 @@ export default function VoiceChat() {
               isSpeaking || listening ? '#5fdad4' : 'var(--tiffany-blue)',
           }}
         >
-          {isSpeaking
-            ? '停止播報'
-            : listening
-            ? '聽寫中... / 停止聽寫'
-            : '🎤 語音輸入'}
+          {isSpeaking ? '停止播報' : listening ? '停止錄音' : '🎤 語音輸入'}
         </Button>
         <Button
-          onClick={() => sendToClaude(testMessage)}
+          onClick={() => sendToClaude(getRandomTestMessage())}
           style={{
             minWidth: 120,
             fontWeight: 600,
@@ -378,7 +402,7 @@ export default function VoiceChat() {
             background: '#4CAF50',
           }}
         >
-          🧪 測試訊息
+          🧪 隨機
         </Button>
       </div>
     </div>
