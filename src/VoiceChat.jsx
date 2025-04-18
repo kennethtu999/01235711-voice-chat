@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Settings from './Settings';
 
+// Add styles for Toast animation
+const styles = `
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+`;
+
 // Simple Button component as a placeholder
 function Button({ children, isLoading, ...props }) {
   return (
@@ -81,6 +91,33 @@ const voiceProfiles = {
   },
 };
 
+// Toast component
+function Toast({ message, isVisible }) {
+  if (!isVisible) return null;
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '4px',
+          zIndex: 1000,
+          animation: 'fadeInOut 2s ease-in-out',
+        }}
+      >
+        {message}
+      </div>
+    </>
+  );
+}
+
 export default function VoiceChat() {
   const [listening, setListening] = useState(false);
   const [chatLog, setChatLog] = useState([]);
@@ -94,9 +131,19 @@ export default function VoiceChat() {
   const [voiceProfile, setVoiceProfile] = useState(
     () => sessionStorage.getItem('voicechat_voice_profile') || 'mysterious'
   );
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
   const messagesEndRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const showSuccessToast = (message) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 2000);
+  };
 
   useEffect(() => {
     if (!recognition) return;
@@ -118,6 +165,23 @@ export default function VoiceChat() {
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event);
       setListening(false);
+
+      let msg = '';
+      switch (event.error) {
+        case 'not-allowed':
+          msg = '⚠️ 使用者未允許語音權限。請確認 Safari 有開啟麥克風權限。';
+          break;
+        case 'network':
+          msg = '📡 網路異常，請稍後再試。';
+          break;
+        case 'no-speech':
+          msg = '🕵️ 沒有偵測到語音，請再試一次。';
+          break;
+        default:
+          msg = `發生未知錯誤：${event.error}`;
+      }
+
+      alert(msg);
     };
   }, []);
 
@@ -127,19 +191,23 @@ export default function VoiceChat() {
       // If already listening, stop it
       recognition.stop();
       setListening(false);
+      showSuccessToast('已停止語音輸入');
       return;
     }
     setListening(true);
     recognition.start();
+    showSuccessToast('開始語音輸入');
   };
 
   const stopAll = () => {
     if (window.speechSynthesis && isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      showSuccessToast('已停止語音播報');
     } else if (recognition && listening) {
       recognition.stop();
       setListening(false);
+      showSuccessToast('已停止語音輸入');
     }
   };
 
@@ -283,6 +351,7 @@ export default function VoiceChat() {
       }}
       className="p-4"
     >
+      <Toast message={toastMessage} isVisible={showToast} />
       <h2
         className="text-xl font-bold mb-2 text-center"
         style={{

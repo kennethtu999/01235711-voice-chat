@@ -3,8 +3,6 @@ curl -X POST \
  -H 'Content-Type: application/json' \
  -d '{"action": "sendMessage", "chatInput": "說個笑話聽聽"}'
 
-
-
 http://localhost:5678/webhook/30b09695-0f2e-48a6-acba-3abdef6393c0/chat
 
 curl -X POST \
@@ -12,14 +10,20 @@ curl -X POST \
  -H 'Content-Type: application/json' \
  -d '{"action": "sendMessage", "chatInput": "說個笑話聽聽"}'
 
-
 curl -X POST \
  https://clouldflare-route.kenneth-tu.workers.dev/api/messages \
  -H 'Content-Type: application/json' \
  -d '{"action": "sendMessage", "chatInput": "說個笑話聽聽"}'
 
-
 curl -X POST \
  http://localhost:8787/api/messages \
  -H 'Content-Type: application/json' \
  -d '{"action": "sendMessage", "chatInput": "說個笑話聽聽"}'
+
+## Tunnel
+
+```sh
+brew cleanup cloudflared
+cloudflared tunnel login
+cloudflared tunnel --url http://localhost:5173
+```
