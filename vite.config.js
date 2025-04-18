@@ -11,6 +11,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    allowedHosts: ['packet-acres-slide-norman.trycloudflare.com'],
+    allowedHosts: true,
   },
 });

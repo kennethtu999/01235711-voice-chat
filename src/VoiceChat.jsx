@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Settings from './Settings';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 
 // Add styles for Toast animation
 const styles = `
@@ -62,10 +65,6 @@ function GearIcon({ size = 28, ...props }) {
   );
 }
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-
 const DEFAULT_API_URL = '/api/messages';
 
 const voiceProfiles = {
@@ -119,7 +118,6 @@ function Toast({ message, isVisible }) {
 }
 
 export default function VoiceChat() {
-  const [listening, setListening] = useState(false);
   const [chatLog, setChatLog] = useState([]);
   const [apiUrl, setApiUrl] = useState(
     () => sessionStorage.getItem('voicechat_api_url') || DEFAULT_API_URL
@@ -136,6 +134,14 @@ export default function VoiceChat() {
   const messagesEndRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const debounceTimerRef = useRef(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
 
   const showSuccessToast = (message) => {
     setToastMessage(message);
@@ -145,57 +151,21 @@ export default function VoiceChat() {
     }, 2000);
   };
 
-  useEffect(() => {
-    if (!recognition) return;
-
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'zh-TW';
-
-    recognition.onresult = (event) => {
-      const text = event.results[0][0].transcript;
-      sendToClaude(text);
-      setListening(false);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event);
-      setListening(false);
-
-      let msg = '';
-      switch (event.error) {
-        case 'not-allowed':
-          msg = '⚠️ 使用者未允許語音權限。請確認 Safari 有開啟麥克風權限。';
-          break;
-        case 'network':
-          msg = '📡 網路異常，請稍後再試。';
-          break;
-        case 'no-speech':
-          msg = '🕵️ 沒有偵測到語音，請再試一次。';
-          break;
-        default:
-          msg = `發生未知錯誤：${event.error}`;
-      }
-
-      alert(msg);
-    };
-  }, []);
-
   const startListening = () => {
-    if (!recognition) return alert('瀏覽器不支援語音辨識。');
+    if (!browserSupportsSpeechRecognition) {
+      return alert('瀏覽器不支援語音辨識。');
+    }
+
     if (listening) {
-      // If already listening, stop it
-      recognition.stop();
-      setListening(false);
+      SpeechRecognition.stopListening();
       showSuccessToast('已停止語音輸入');
       return;
     }
-    setListening(true);
-    recognition.start();
+
+    SpeechRecognition.startListening({
+      continuous: false,
+      language: 'zh-TW',
+    });
     showSuccessToast('開始語音輸入');
   };
 
@@ -204,9 +174,8 @@ export default function VoiceChat() {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       showSuccessToast('已停止語音播報');
-    } else if (recognition && listening) {
-      recognition.stop();
-      setListening(false);
+    } else if (listening) {
+      SpeechRecognition.stopListening();
       showSuccessToast('已停止語音輸入');
     }
   };
@@ -309,6 +278,29 @@ export default function VoiceChat() {
       setIsLoading(false);
     }
   };
+
+  // Handle transcript changes with debounce
+  useEffect(() => {
+    if (transcript && !listening) {
+      // Clear any existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set a new timer
+      debounceTimerRef.current = setTimeout(() => {
+        sendToClaude(transcript);
+        resetTranscript();
+      }, 300);
+    }
+
+    // Cleanup timer on unmount or when listening starts again
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [transcript, listening]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
