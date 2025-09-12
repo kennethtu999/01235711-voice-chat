@@ -360,23 +360,23 @@ export default function VoiceChat() {
       {/* Input Area - Fixed at bottom */}
       <div className="bg-base-100 shadow-sm border-t border-base-300 fixed bottom-0 left-0 right-0 z-20">
         <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-4xl">
-          {/* Text Input */}
+          {/* Text Input - Force single line */}
           <form
             onSubmit={handleTextSubmit}
             className="form-control mb-3 sm:mb-4"
           >
-            <div className="input-group input-group-sm sm:input-group-md">
+            <div className="input-group input-group-sm sm:input-group-md w-full flex-nowrap">
               <input
                 type="text"
                 placeholder="輸入您的訊息..."
-                className="input input-bordered flex-1 text-sm focus:ring-2 focus:ring-primary/20"
+                className="input input-bordered flex-1 text-base focus:ring-2 focus:ring-primary/20 min-w-0"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 disabled={isLoading}
               />
               <button
                 type="submit"
-                className={`btn btn-primary btn-sm sm:btn-md ${
+                className={`btn btn-primary btn-sm sm:btn-md flex-shrink-0 ${
                   isLoading ? 'loading' : ''
                 }`}
                 disabled={isLoading || !textInput.trim()}

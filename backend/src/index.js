@@ -72,17 +72,48 @@ async function handleMessages(request, env) {
   }
 }
 
+// Parse chat history from formatted string
+function parseChatHistory(chatInput) {
+  const messages = [];
+  const lines = chatInput.split('\n');
+
+  for (const line of lines) {
+    if (line.startsWith('User: ')) {
+      messages.push({
+        role: 'user',
+        content: line.replace('User: ', ''),
+      });
+    } else if (line.startsWith('Assistant: ')) {
+      messages.push({
+        role: 'assistant',
+        content: line.replace('Assistant: ', ''),
+      });
+    }
+  }
+
+  return messages;
+}
+
 async function callCloudflareAI(chatInput, env) {
   try {
     // Use Cloudflare AI binding
     const ai = env.AI;
+
+    // Parse chat history from input
+    const messages = parseChatHistory(chatInput);
+
+    // Add system prompt for Chinese response
+    const systemPrompt = {
+      role: 'system',
+      content:
+        '你是一個友善的AI助手，請用繁體中文回覆。你的名字是「尬聊阿伯」，個性幽默風趣，喜歡與人聊天。請保持對話自然流暢，並適時加入一些台灣用語或幽默元素。',
+    };
+
+    // Add system prompt at the beginning
+    const allMessages = [systemPrompt, ...messages];
+
     const response = await ai.run('@cf/meta/llama-2-7b-chat-int8', {
-      messages: [
-        {
-          role: 'user',
-          content: chatInput,
-        },
-      ],
+      messages: allMessages,
       max_tokens: 1024,
     });
 
@@ -103,6 +134,19 @@ async function callCloudflareAI(chatInput, env) {
 
 async function callAnthropicAI(chatInput, env) {
   try {
+    // Parse chat history from input
+    const messages = parseChatHistory(chatInput);
+
+    // Add system prompt for Chinese response
+    const systemPrompt = {
+      role: 'system',
+      content:
+        '你是一個友善的AI助手，請用繁體中文回覆。你的名字是「尬聊阿伯」，個性幽默風趣，喜歡與人聊天。請保持對話自然流暢，並適時加入一些台灣用語或幽默元素。',
+    };
+
+    // Add system prompt at the beginning
+    const allMessages = [systemPrompt, ...messages];
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -113,12 +157,7 @@ async function callAnthropicAI(chatInput, env) {
       body: JSON.stringify({
         model: env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
         max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: chatInput,
-          },
-        ],
+        messages: allMessages,
       }),
     });
 
