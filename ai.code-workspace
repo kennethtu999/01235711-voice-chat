@@ -3,14 +3,6 @@
     {
       "name": "voice-chat",
       "path": "./"
-    },
-    {
-      "name": "cloudflare-route",
-      "path": "../cloudflare-route"
-    },
-    {
-      "name": "n8n-ready",
-      "path": "../n8n-ready"
     }
   ],
   "settings": {}

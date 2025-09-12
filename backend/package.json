@@ -1,0 +1,28 @@
+{
+  "name": "voice-chat-backend",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker backend for Voice Chat application",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "build": "echo 'No build step required for Cloudflare Workers'",
+    "preview": "wrangler dev",
+    "build:frontend": "cd ../frontend && npm run build",
+    "start": "npm run build:frontend && npm run dev"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "ai",
+    "voice-chat"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.78.12"
+  }
+}
