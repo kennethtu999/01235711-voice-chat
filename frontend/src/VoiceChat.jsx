@@ -4,67 +4,6 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
 
-// Add styles for Toast animation
-const styles = `
-  @keyframes fadeInOut {
-    0% { opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-`;
-
-// Simple Button component as a placeholder
-function Button({ children, isLoading, ...props }) {
-  return (
-    <button
-      style={{
-        padding: '0.5rem 1rem',
-        borderRadius: '0.5rem',
-        background: 'var(--tiffany-blue)',
-        color: 'white',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: '1rem',
-        position: 'relative',
-        overflow: 'hidden',
-        minWidth: '120px',
-      }}
-      disabled={isLoading}
-      {...props}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-          正在思考中...
-        </div>
-      ) : (
-        children
-      )}
-    </button>
-  );
-}
-
-// 簡單的齒輪 SVG icon
-function GearIcon({ size = 28, ...props }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
 const DEFAULT_API_URL = '/api/messages';
 
 const voiceProfiles = {
@@ -90,30 +29,24 @@ const voiceProfiles = {
   },
 };
 
-// Toast component
-function Toast({ message, isVisible }) {
+// Toast component using DaisyUI's built-in system
+function Toast({ message, isVisible, type = 'info' }) {
   if (!isVisible) return null;
 
+  const alertType =
+    {
+      info: 'alert-info',
+      success: 'alert-success',
+      warning: 'alert-warning',
+      error: 'alert-error',
+    }[type] || 'alert-info';
+
   return (
-    <>
-      <style>{styles}</style>
-      <div
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: '4px',
-          zIndex: 1000,
-          animation: 'fadeInOut 2s ease-in-out',
-        }}
-      >
-        {message}
+    <div className="toast toast-top toast-center z-50">
+      <div className={`alert ${alertType} shadow-lg`}>
+        <span>{message}</span>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -131,6 +64,8 @@ export default function VoiceChat() {
   );
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [toastType, setToastType] = useState('info');
+  const [textInput, setTextInput] = useState('');
   const messagesEndRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,8 +78,9 @@ export default function VoiceChat() {
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
-  const showSuccessToast = (message) => {
+  const showToastMessage = (message, type = 'info') => {
     setToastMessage(message);
+    setToastType(type);
     setShowToast(true);
     setTimeout(() => {
       setShowToast(false);
@@ -153,12 +89,12 @@ export default function VoiceChat() {
 
   const startListening = () => {
     if (!browserSupportsSpeechRecognition) {
-      return alert('瀏覽器不支援語音辨識。');
+      return showToastMessage('瀏覽器不支援語音辨識', 'error');
     }
 
     if (listening) {
       SpeechRecognition.stopListening();
-      showSuccessToast('已停止語音輸入');
+      showToastMessage('已停止語音輸入', 'info');
       return;
     }
 
@@ -166,17 +102,17 @@ export default function VoiceChat() {
       continuous: false,
       language: 'zh-TW',
     });
-    showSuccessToast('開始語音輸入');
+    showToastMessage('開始語音輸入', 'success');
   };
 
   const stopAll = () => {
     if (window.speechSynthesis && isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      showSuccessToast('已停止語音播報');
+      showToastMessage('已停止語音播報', 'info');
     } else if (listening) {
       SpeechRecognition.stopListening();
-      showSuccessToast('已停止語音輸入');
+      showToastMessage('已停止語音輸入', 'info');
     }
   };
 
@@ -190,7 +126,7 @@ export default function VoiceChat() {
     sessionStorage.setItem('voicechat_voice_profile', newSettings.voiceProfile);
 
     setShowSettings(false);
-    window.location.reload();
+    showToastMessage('設定已儲存', 'success');
   };
 
   const speak = (text) => {
@@ -212,10 +148,8 @@ export default function VoiceChat() {
 
     // iOS Safari specific handling
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      // iOS requires user interaction to start speech
       utter.onstart = () => {
         setIsSpeaking(true);
-        // iOS specific: resume speech if it was paused
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         }
@@ -230,7 +164,6 @@ export default function VoiceChat() {
       setIsSpeaking(false);
     };
 
-    // iOS specific: ensure speech is not paused
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
@@ -239,6 +172,8 @@ export default function VoiceChat() {
   };
 
   const sendToClaude = async (userMessage) => {
+    if (!userMessage.trim()) return;
+
     setIsLoading(true);
     const newChatLog = [...chatLog, { sender: 'user', message: userMessage }];
     setChatLog(newChatLog);
@@ -274,6 +209,7 @@ export default function VoiceChat() {
         ...newChatLog,
         { sender: 'claude', message: '發生錯誤，請稍後再試。' },
       ]);
+      showToastMessage('發送訊息時發生錯誤', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -282,19 +218,16 @@ export default function VoiceChat() {
   // Handle transcript changes with debounce
   useEffect(() => {
     if (transcript && !listening) {
-      // Clear any existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
-      // Set a new timer
       debounceTimerRef.current = setTimeout(() => {
         sendToClaude(transcript);
         resetTranscript();
       }, 300);
     }
 
-    // Cleanup timer on unmount or when listening starts again
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -310,9 +243,12 @@ export default function VoiceChat() {
     speak(message);
   };
 
-  const handleMessageLongPress = (message) => {
-    navigator.clipboard.writeText(message);
-    // You might want to add a visual feedback here
+  const handleTextSubmit = (e) => {
+    e.preventDefault();
+    if (textInput.trim()) {
+      sendToClaude(textInput);
+      setTextInput('');
+    }
   };
 
   const testMessages = [
@@ -331,28 +267,207 @@ export default function VoiceChat() {
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        margin: '0 auto',
-        position: 'relative',
-        paddingBottom: '80px',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      className="p-4"
-    >
-      <Toast message={toastMessage} isVisible={showToast} />
-      <h2
-        className="text-xl font-bold mb-2 text-center"
-        style={{
-          color: 'var(--tiffany-blue)',
-          flexShrink: 0,
-        }}
-      >
-        尬聊阿伯
-      </h2>
+    <div className="h-screen bg-base-200 relative overflow-hidden">
+      <Toast message={toastMessage} isVisible={showToast} type={toastType} />
+
+      {/* Header - Fixed at top */}
+      <div className="navbar bg-base-100 shadow-sm border-b border-base-300 fixed top-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8">
+        <div className="flex-1">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-content font-bold text-sm">AI</span>
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-semibold text-primary">
+                尬聊阿伯
+              </h1>
+              <div className="text-xs text-base-content/70">
+                AI 語音聊天助手
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-none">
+          <button
+            className="btn btn-ghost btn-circle btn-sm"
+            onClick={() => setShowSettings(true)}
+            title="設定"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Chat Area - Scrollable, positioned between header and input */}
+      <div className="absolute top-16 bottom-28 sm:bottom-32 left-0 right-0 overflow-hidden p-2 sm:p-4 lg:p-6">
+        <div className="h-full bg-base-100 rounded-xl shadow-sm border border-base-300 overflow-hidden">
+          <div className="h-full overflow-y-auto p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              {chatLog.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`chat ${
+                    msg.sender === 'user' ? 'chat-end' : 'chat-start'
+                  }`}
+                >
+                  <div className="chat-header text-xs font-medium text-base-content/60 mb-1">
+                    {msg.sender === 'user' ? '您' : '尬聊阿伯'}
+                  </div>
+                  <div
+                    className={`chat-bubble ${
+                      msg.sender === 'user'
+                        ? 'chat-bubble-primary'
+                        : 'chat-bubble-secondary'
+                    } cursor-pointer text-sm leading-relaxed max-w-xs sm:max-w-md`}
+                    onClick={() => handleMessageClick(msg.message)}
+                  >
+                    {msg.message}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="chat chat-start">
+                  <div className="chat-bubble chat-bubble-secondary">
+                    <span className="loading loading-dots loading-sm mr-2"></span>
+                    <span className="text-sm">正在思考中...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Input Area - Fixed at bottom */}
+      <div className="bg-base-100 shadow-sm border-t border-base-300 fixed bottom-0 left-0 right-0 z-20">
+        <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-4xl">
+          {/* Text Input */}
+          <form
+            onSubmit={handleTextSubmit}
+            className="form-control mb-3 sm:mb-4"
+          >
+            <div className="input-group input-group-sm sm:input-group-md">
+              <input
+                type="text"
+                placeholder="輸入您的訊息..."
+                className="input input-bordered flex-1 text-sm focus:ring-2 focus:ring-primary/20"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                className={`btn btn-primary btn-sm sm:btn-md ${
+                  isLoading ? 'loading' : ''
+                }`}
+                disabled={isLoading || !textInput.trim()}
+              >
+                {isLoading ? '' : '發送'}
+              </button>
+            </div>
+          </form>
+
+          {/* Action Buttons - Mobile optimized */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:justify-center">
+            <button
+              className={`btn btn-sm sm:btn-md ${
+                isSpeaking || listening ? 'btn-warning' : 'btn-secondary'
+              } ${isLoading ? 'loading' : ''}`}
+              onClick={isSpeaking || listening ? stopAll : startListening}
+              disabled={isLoading}
+            >
+              {isSpeaking ? (
+                <>
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">停止</span>
+                </>
+              ) : listening ? (
+                <>
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">
+                    停止錄音
+                  </span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">
+                    語音輸入
+                  </span>
+                </>
+              )}
+            </button>
+
+            <button
+              className="btn btn-accent btn-sm sm:btn-md"
+              onClick={() => sendToClaude(getRandomTestMessage())}
+              disabled={isLoading}
+            >
+              <svg
+                className="w-3 h-3 sm:w-4 sm:h-4"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">隨機話題</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <Settings
         isOpen={showSettings}
@@ -364,105 +479,6 @@ export default function VoiceChat() {
           voiceProfile,
         }}
       />
-
-      <div
-        className="flex-1 overflow-y-auto rounded-lg p-4"
-        style={{
-          background: 'rgba(230, 248, 247, 0.8)',
-          border: '1px solid rgba(0, 0, 0, 0.1)',
-          boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.05)',
-          width: '100%',
-        }}
-      >
-        <div className="space-y-2 w-full">
-          {chatLog.map((msg, idx) => (
-            <div
-              key={idx}
-              className={msg.sender === 'user' ? 'text-right' : 'text-left'}
-              style={{ width: '100%' }}
-            >
-              <div
-                className={`inline-block p-3 rounded-2xl shadow-sm max-w-[80%] ${
-                  msg.sender === 'user' ? 'text-white' : 'text-gray-900'
-                }`}
-                style={{
-                  background:
-                    msg.sender === 'user' ? 'var(--tiffany-blue)' : '#b2ecea',
-                  color: msg.sender === 'user' ? 'white' : '#222',
-                  cursor: 'pointer',
-                }}
-                onClick={() => handleMessageClick(msg.message)}
-                onTouchStart={() => {
-                  const timer = setTimeout(() => {
-                    handleMessageLongPress(msg.message);
-                  }, 500);
-                  document.addEventListener(
-                    'touchend',
-                    () => clearTimeout(timer),
-                    { once: true }
-                  );
-                }}
-              >
-                {msg.message}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-      <div
-        className="flex items-center gap-3"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '1rem',
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(8px)',
-          boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        <button
-          onClick={() => setShowSettings(true)}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            marginRight: 8,
-            cursor: 'pointer',
-          }}
-          aria-label="設定"
-        >
-          <GearIcon size={32} style={{ color: 'var(--tiffany-blue)' }} />
-        </button>
-        <Button
-          onClick={isSpeaking || listening ? stopAll : startListening}
-          isLoading={isLoading}
-          style={{
-            minWidth: 120,
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            background:
-              isSpeaking || listening ? '#5fdad4' : 'var(--tiffany-blue)',
-          }}
-        >
-          {isSpeaking ? '停止播報' : listening ? '停止錄音' : '🎤 語音輸入'}
-        </Button>
-        <Button
-          onClick={() => sendToClaude(getRandomTestMessage())}
-          style={{
-            minWidth: 120,
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            background: '#4CAF50',
-          }}
-        >
-          🧪 隨機
-        </Button>
-      </div>
     </div>
   );
 }

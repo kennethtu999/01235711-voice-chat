@@ -52,49 +52,58 @@ export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm border border-gray-200 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-          style={{
-            fontSize: '20px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          ✕
-        </button>
+    <div className="modal modal-open">
+      <div className="modal-box">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-2xl font-bold text-primary">設定</h3>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
-        <h2
-          className="text-xl font-bold mb-4"
-          style={{ color: 'var(--tiffany-blue)' }}
-        >
-          設定
-        </h2>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-1 text-gray-700">API 伺服器網址</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* API URL Setting */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-semibold">API 伺服器網址</span>
+            </label>
             <input
               type="text"
               name="apiUrl"
               value={settings.apiUrl}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-xl text-gray-700 bg-[#e6f8f7]"
-              style={{ borderColor: 'var(--tiffany-blue)' }}
+              className="input input-bordered w-full"
+              placeholder="https://your-api.com/api/messages"
             />
+            <label className="label">
+              <span className="label-text-alt text-base-content/70">
+                留空則使用預設的 Cloudflare Workers API
+              </span>
+            </label>
           </div>
 
-          <div className="mb-4">
-            <label className="block mb-1 text-gray-700">語音風格</label>
+          {/* Voice Profile Setting */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-semibold">語音風格</span>
+            </label>
             <select
               name="voiceProfile"
               value={settings.voiceProfile}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-xl text-gray-700 bg-[#e6f8f7]"
-              style={{ borderColor: 'var(--tiffany-blue)' }}
+              className="select select-bordered w-full"
             >
               {Object.entries(voiceProfiles).map(([key, profile]) => (
                 <option key={key} value={key}>
@@ -102,31 +111,44 @@ export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="mb-4 flex items-center gap-2">
-            <input
-              id="auto-speak"
-              type="checkbox"
-              name="autoSpeak"
-              checked={settings.autoSpeak}
-              onChange={handleInputChange}
-              className="accent-[var(--tiffany-blue)]"
-            />
-            <label htmlFor="auto-speak" className="text-gray-700">
-              自動語音播報
+            <label className="label">
+              <span className="label-text-alt text-base-content/70">
+                選擇語音播報的風格和語調
+              </span>
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-2 px-4 rounded-xl text-white font-semibold"
-            style={{ background: 'var(--tiffany-blue)' }}
-          >
-            儲存設定
-          </button>
+          {/* Auto Speak Setting */}
+          <div className="form-control">
+            <label className="label cursor-pointer">
+              <span className="label-text font-semibold">自動語音播報</span>
+              <input
+                type="checkbox"
+                name="autoSpeak"
+                checked={settings.autoSpeak}
+                onChange={handleInputChange}
+                className="toggle toggle-primary"
+              />
+            </label>
+            <label className="label">
+              <span className="label-text-alt text-base-content/70">
+                收到 AI 回應時自動播放語音
+              </span>
+            </label>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="modal-action">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
+              取消
+            </button>
+            <button type="submit" className="btn btn-primary">
+              儲存設定
+            </button>
+          </div>
         </form>
       </div>
+      <div className="modal-backdrop" onClick={onClose}></div>
     </div>
   );
 }
