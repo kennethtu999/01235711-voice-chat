@@ -9,6 +9,7 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "build": "echo 'No build step required for Cloudflare Workers'",
+    "build:watch": "echo 'No build watch step required for Cloudflare Workers'",
     "preview": "wrangler dev",
     "build:frontend": "cd ../frontend && npm run build",
     "start": "npm run build:frontend && npm run dev"
