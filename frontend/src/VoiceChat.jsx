@@ -70,6 +70,9 @@ export default function VoiceChat() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimerRef = useRef(null);
+  
+  // Detect if device is iPhone
+  const isIPhone = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   const {
     transcript,
@@ -127,6 +130,12 @@ export default function VoiceChat() {
 
     setShowSettings(false);
     showToastMessage('設定已儲存', 'success');
+  };
+
+  // Clear conversation history
+  const clearConversation = () => {
+    setChatLog([]);
+    showToastMessage('對話已清除', 'success');
   };
 
   const speak = (text) => {
@@ -343,14 +352,6 @@ export default function VoiceChat() {
                   </div>
                 </div>
               ))}
-              {isLoading && (
-                <div className="chat chat-start">
-                  <div className="chat-bubble chat-bubble-secondary">
-                    <span className="loading loading-dots loading-sm mr-2"></span>
-                    <span className="text-sm">正在思考中...</span>
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -365,95 +366,124 @@ export default function VoiceChat() {
             onSubmit={handleTextSubmit}
             className="form-control mb-3 sm:mb-4"
           >
-            <div className="input-group input-group-sm sm:input-group-md w-full flex-nowrap">
+            <div className="flex w-full gap-2">
               <input
                 type="text"
                 placeholder="輸入您的訊息..."
-                className="input input-bordered flex-1 text-base focus:ring-2 focus:ring-primary/20 min-w-0"
+                className="input input-bordered flex-1 text-base sm:text-lg focus:ring-2 focus:ring-primary/20 min-w-0 h-12 sm:h-14"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 disabled={isLoading}
               />
               <button
                 type="submit"
-                className={`btn btn-primary btn-sm sm:btn-md flex-shrink-0 ${
-                  isLoading ? 'loading' : ''
-                }`}
+                className="btn btn-primary flex-shrink-0 min-w-[60px] h-12 sm:h-14 text-base sm:text-lg"
                 disabled={isLoading || !textInput.trim()}
               >
-                {isLoading ? '' : '發送'}
+                發送
               </button>
             </div>
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="flex items-center justify-center mt-2">
+                <span className="loading loading-dots loading-md mr-2"></span>
+                <span className="text-sm text-base-content/70">正在思考中...</span>
+              </div>
+            )}
           </form>
 
-          {/* Action Buttons - Mobile optimized */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:justify-center">
+          {/* Action Buttons - Three buttons in one row */}
+          <div className="flex gap-2 w-full">
+            {/* 新對話按鈕 */}
             <button
-              className={`btn btn-sm sm:btn-md ${
-                isSpeaking || listening ? 'btn-warning' : 'btn-secondary'
-              } ${isLoading ? 'loading' : ''}`}
-              onClick={isSpeaking || listening ? stopAll : startListening}
+              className="btn btn-outline flex-1 h-12 sm:h-14 text-base sm:text-lg"
+              onClick={clearConversation}
               disabled={isLoading}
             >
-              {isSpeaking ? (
-                <>
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">停止</span>
-                </>
-              ) : listening ? (
-                <>
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">
-                    停止錄音
-                  </span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm">
-                    語音輸入
-                  </span>
-                </>
-              )}
+              <svg
+                className="w-4 h-4 sm:w-5 sm:h-5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="ml-1 sm:ml-2 text-base sm:text-lg font-medium">新對話</span>
             </button>
 
+            {/* 語音輸入按鈕 - iPhone隱藏 */}
+            {!isIPhone && (
+              <button
+                className={`btn flex-1 h-12 sm:h-14 text-base sm:text-lg ${
+                  isSpeaking || listening ? 'btn-warning' : 'btn-secondary'
+                }`}
+                onClick={isSpeaking || listening ? stopAll : startListening}
+                disabled={isLoading}
+              >
+                {isSpeaking ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="ml-1 sm:ml-2 text-base sm:text-lg font-medium">停止</span>
+                  </>
+                ) : listening ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="ml-1 sm:ml-2 text-base sm:text-lg font-medium">
+                      停止錄音
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="ml-1 sm:ml-2 text-base sm:text-lg font-medium">
+                      語音輸入
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* 隨機話題按鈕 */}
             <button
-              className="btn btn-accent btn-sm sm:btn-md"
+              className="btn btn-accent flex-1 h-12 sm:h-14 text-base sm:text-lg"
               onClick={() => sendToClaude(getRandomTestMessage())}
               disabled={isLoading}
             >
               <svg
-                className="w-3 h-3 sm:w-4 sm:h-4"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -463,7 +493,7 @@ export default function VoiceChat() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">隨機話題</span>
+              <span className="ml-1 sm:ml-2 text-base sm:text-lg font-medium">隨機話題</span>
             </button>
           </div>
         </div>
