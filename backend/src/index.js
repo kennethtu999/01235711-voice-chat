@@ -106,6 +106,13 @@ export default {
           }
 
           chatInput = messages;
+
+          // Log conversation ID for debugging
+          if (body.conversationId) {
+            console.log(
+              `Processing message for conversation: ${body.conversationId}`
+            );
+          }
         } else if (body.message) {
           // Backend format: message + chatHistory
           const chatHistory = body.chatHistory || [];

@@ -28,6 +28,7 @@ export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
     apiUrl: initialSettings?.apiUrl || '',
     autoSpeak: initialSettings?.autoSpeak || false,
     voiceProfile: initialSettings?.voiceProfile || 'calm',
+    includeFullContext: initialSettings?.includeFullContext !== undefined ? initialSettings.includeFullContext : true,
   });
 
   useEffect(() => {
@@ -133,6 +134,25 @@ export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
             <label className="label">
               <span className="label-text-alt text-base-content/70">
                 收到 AI 回應時自動播放語音
+              </span>
+            </label>
+          </div>
+
+          {/* Context Control Setting */}
+          <div className="form-control">
+            <label className="label cursor-pointer">
+              <span className="label-text font-semibold">發送完整對話歷史</span>
+              <input
+                type="checkbox"
+                name="includeFullContext"
+                checked={settings.includeFullContext}
+                onChange={handleInputChange}
+                className="toggle toggle-primary"
+              />
+            </label>
+            <label className="label">
+              <span className="label-text-alt text-base-content/70">
+                發送整個對話歷史給 AI
               </span>
             </label>
           </div>

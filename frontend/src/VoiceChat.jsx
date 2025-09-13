@@ -6,6 +6,54 @@ import SpeechRecognition, {
 
 const DEFAULT_API_URL = '/api/messages';
 
+// 生成唯一對話ID
+const generateConversationId = () => {
+  return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// 對話管理工具函數
+const ConversationManager = {
+  // 從localStorage載入對話歷史
+  loadConversations: () => {
+    try {
+      const stored = localStorage.getItem('voicechat_conversations');
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      console.error('載入對話歷史失敗:', error);
+      return {};
+    }
+  },
+
+  // 儲存對話歷史到localStorage
+  saveConversations: (conversations) => {
+    try {
+      localStorage.setItem('voicechat_conversations', JSON.stringify(conversations));
+    } catch (error) {
+      console.error('儲存對話歷史失敗:', error);
+    }
+  },
+
+  // 新增對話
+  createConversation: (conversations) => {
+    const newId = generateConversationId();
+    const newConversation = {
+      id: newId,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString()
+    };
+    conversations[newId] = newConversation;
+    return newConversation;
+  },
+
+  // 更新對話最後活動時間
+  updateLastActive: (conversations, conversationId) => {
+    if (conversations[conversationId]) {
+      conversations[conversationId].lastActiveAt = new Date().toISOString();
+    }
+  }
+};
+
 const voiceProfiles = {
   cheerful: {
     pitch: 1.8,
@@ -51,7 +99,12 @@ function Toast({ message, isVisible, type = 'info' }) {
 }
 
 export default function VoiceChat() {
+  // 對話管理狀態
+  const [conversations, setConversations] = useState(() => ConversationManager.loadConversations());
+  const [currentConversationId, setCurrentConversationId] = useState(null);
   const [chatLog, setChatLog] = useState([]);
+  
+  // 其他狀態
   const [apiUrl, setApiUrl] = useState(
     () => sessionStorage.getItem('voicechat_api_url') || DEFAULT_API_URL
   );
@@ -61,6 +114,9 @@ export default function VoiceChat() {
   );
   const [voiceProfile, setVoiceProfile] = useState(
     () => sessionStorage.getItem('voicechat_voice_profile') || 'mysterious'
+  );
+  const [includeFullContext, setIncludeFullContext] = useState(
+    () => sessionStorage.getItem('voicechat_include_full_context') !== 'false'
   );
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -88,6 +144,56 @@ export default function VoiceChat() {
     setTimeout(() => {
       setShowToast(false);
     }, 2000);
+  };
+
+  // 初始化對話
+  const initializeConversation = () => {
+    if (!currentConversationId) {
+      const newConversation = ConversationManager.createConversation(conversations);
+      setConversations({ ...conversations, [newConversation.id]: newConversation });
+      setCurrentConversationId(newConversation.id);
+      setChatLog([]);
+      ConversationManager.saveConversations({ ...conversations, [newConversation.id]: newConversation });
+    }
+  };
+
+  // 開始新對話
+  const startNewConversation = () => {
+    const newConversation = ConversationManager.createConversation(conversations);
+    const updatedConversations = { ...conversations, [newConversation.id]: newConversation };
+    
+    setConversations(updatedConversations);
+    setCurrentConversationId(newConversation.id);
+    setChatLog([]);
+    ConversationManager.saveConversations(updatedConversations);
+    showToastMessage('新對話已開始', 'success');
+  };
+
+  // 載入對話
+  const loadConversation = (conversationId) => {
+    const conversation = conversations[conversationId];
+    if (conversation) {
+      setCurrentConversationId(conversationId);
+      setChatLog(conversation.messages);
+      ConversationManager.updateLastActive(conversations, conversationId);
+      ConversationManager.saveConversations(conversations);
+    }
+  };
+
+  // 更新當前對話的訊息
+  const updateCurrentConversation = (messages) => {
+    if (currentConversationId && conversations[currentConversationId]) {
+      const updatedConversations = {
+        ...conversations,
+        [currentConversationId]: {
+          ...conversations[currentConversationId],
+          messages: messages,
+          lastActiveAt: new Date().toISOString()
+        }
+      };
+      setConversations(updatedConversations);
+      ConversationManager.saveConversations(updatedConversations);
+    }
   };
 
   const startListening = () => {
@@ -123,19 +229,20 @@ export default function VoiceChat() {
     setApiUrl(newSettings.apiUrl);
     setAutoSpeak(newSettings.autoSpeak);
     setVoiceProfile(newSettings.voiceProfile);
+    setIncludeFullContext(newSettings.includeFullContext);
 
     sessionStorage.setItem('voicechat_api_url', newSettings.apiUrl);
     sessionStorage.setItem('voicechat_auto_speak', newSettings.autoSpeak);
     sessionStorage.setItem('voicechat_voice_profile', newSettings.voiceProfile);
+    sessionStorage.setItem('voicechat_include_full_context', newSettings.includeFullContext);
 
     setShowSettings(false);
     showToastMessage('設定已儲存', 'success');
   };
 
-  // Clear conversation history
+  // 清除對話歷史 (現在改為開始新對話)
   const clearConversation = () => {
-    setChatLog([]);
-    showToastMessage('對話已清除', 'success');
+    startNewConversation();
   };
 
   const speak = (text) => {
@@ -183,13 +290,29 @@ export default function VoiceChat() {
   const sendToClaude = async (userMessage) => {
     if (!userMessage.trim()) return;
 
+    // 確保有當前對話
+    if (!currentConversationId) {
+      initializeConversation();
+    }
+
     setIsLoading(true);
     const newChatLog = [...chatLog, { sender: 'user', message: userMessage }];
     setChatLog(newChatLog);
+    updateCurrentConversation(newChatLog);
 
     try {
+      // 根據設定決定發送的對話內容
+      let chatToSend;
+      if (includeFullContext) {
+        // 發送完整對話歷史
+        chatToSend = newChatLog;
+      } else {
+        // 只發送當前訊息
+        chatToSend = [{ sender: 'user', message: userMessage }];
+      }
+
       // Format chat log as multi-line string
-      const formattedChatLog = newChatLog
+      const formattedChatLog = chatToSend
         .map((msg) => {
           const prefix = msg.sender === 'user' ? 'User: ' : 'Assistant: ';
           return `${prefix}${msg.message}`;
@@ -204,20 +327,26 @@ export default function VoiceChat() {
         body: JSON.stringify({
           action: 'sendMessage',
           chatInput: formattedChatLog,
+          conversationId: currentConversationId,
+          includeFullContext: includeFullContext,
         }),
       });
 
       const data = await res.json();
       const reply =
         data.output.message || '沒有回應，有點慘，要再努力才行！！！';
-      setChatLog([...newChatLog, { sender: 'claude', message: reply }]);
+      const finalChatLog = [...newChatLog, { sender: 'claude', message: reply }];
+      setChatLog(finalChatLog);
+      updateCurrentConversation(finalChatLog);
       if (autoSpeak) speak(reply);
     } catch (error) {
       console.error('Error sending message:', error);
-      setChatLog([
+      const errorChatLog = [
         ...newChatLog,
         { sender: 'claude', message: '發生錯誤，請稍後再試。' },
-      ]);
+      ];
+      setChatLog(errorChatLog);
+      updateCurrentConversation(errorChatLog);
       showToastMessage('發送訊息時發生錯誤', 'error');
     } finally {
       setIsLoading(false);
@@ -243,6 +372,11 @@ export default function VoiceChat() {
       }
     };
   }, [transcript, listening]);
+
+  // 初始化對話
+  useEffect(() => {
+    initializeConversation();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -290,9 +424,6 @@ export default function VoiceChat() {
               <h1 className="text-lg sm:text-xl font-semibold text-primary">
                 尬聊阿伯
               </h1>
-              <div className="text-xs text-base-content/70">
-                AI 語音聊天助手
-              </div>
             </div>
           </div>
         </div>
@@ -507,6 +638,7 @@ export default function VoiceChat() {
           apiUrl,
           autoSpeak,
           voiceProfile,
+          includeFullContext,
         }}
       />
     </div>
