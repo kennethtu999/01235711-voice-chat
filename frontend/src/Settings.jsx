@@ -23,12 +23,28 @@ const voiceProfiles = {
   },
 };
 
+const responseModes = {
+  minimal: {
+    description: '極簡',
+    detail: '簡短回答，一兩句話',
+  },
+  concise: {
+    description: '簡潔',
+    detail: '中等長度，重點說明',
+  },
+  normal: {
+    description: '一般',
+    detail: '詳細回答，完整說明',
+  },
+};
+
 export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
   const [settings, setSettings] = useState({
     apiUrl: initialSettings?.apiUrl || '',
     autoSpeak: initialSettings?.autoSpeak || false,
     voiceProfile: initialSettings?.voiceProfile || 'calm',
     includeFullContext: initialSettings?.includeFullContext !== undefined ? initialSettings.includeFullContext : true,
+    responseMode: initialSettings?.responseMode || 'normal',
   });
 
   useEffect(() => {
@@ -156,6 +172,32 @@ export default function Settings({ isOpen, onClose, onSave, initialSettings }) {
               </span>
             </label>
           </div>
+
+          {/* Response Mode Setting */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-semibold">回應模式</span>
+            </label>
+            <select
+              name="responseMode"
+              value={settings.responseMode}
+              onChange={handleInputChange}
+              className="select select-bordered w-full"
+            >
+              {Object.entries(responseModes).map(([key, mode]) => (
+                <option key={key} value={key}>
+                  {mode.description} - {mode.detail}
+                </option>
+              ))}
+            </select>
+            <label className="label">
+              <span className="label-text-alt text-base-content/70">
+                選擇 AI 回應的詳細程度
+              </span>
+            </label>
+          </div>
+
+          
 
           {/* Action Buttons */}
           <div className="modal-action">

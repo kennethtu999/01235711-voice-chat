@@ -118,6 +118,9 @@ export default function VoiceChat() {
   const [includeFullContext, setIncludeFullContext] = useState(
     () => sessionStorage.getItem('voicechat_include_full_context') !== 'false'
   );
+  const [responseMode, setResponseMode] = useState(
+    () => sessionStorage.getItem('voicechat_response_mode') || 'normal'
+  );
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastType, setToastType] = useState('info');
@@ -230,11 +233,13 @@ export default function VoiceChat() {
     setAutoSpeak(newSettings.autoSpeak);
     setVoiceProfile(newSettings.voiceProfile);
     setIncludeFullContext(newSettings.includeFullContext);
+    setResponseMode(newSettings.responseMode);
 
     sessionStorage.setItem('voicechat_api_url', newSettings.apiUrl);
     sessionStorage.setItem('voicechat_auto_speak', newSettings.autoSpeak);
     sessionStorage.setItem('voicechat_voice_profile', newSettings.voiceProfile);
     sessionStorage.setItem('voicechat_include_full_context', newSettings.includeFullContext);
+    sessionStorage.setItem('voicechat_response_mode', newSettings.responseMode);
 
     setShowSettings(false);
     showToastMessage('設定已儲存', 'success');
@@ -329,6 +334,7 @@ export default function VoiceChat() {
           chatInput: formattedChatLog,
           conversationId: currentConversationId,
           includeFullContext: includeFullContext,
+          responseMode: responseMode,
         }),
       });
 
@@ -639,6 +645,7 @@ export default function VoiceChat() {
           autoSpeak,
           voiceProfile,
           includeFullContext,
+          responseMode,
         }}
       />
     </div>
